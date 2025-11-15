@@ -2,11 +2,403 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Trading Chart</title>
-    <!-- Chart HTML content will be added here -->
+    <script src="https://cdn.jsdelivr.net/npm/klinecharts/dist/klinecharts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #0D0D0D;
+            overflow: hidden;
+        }
+
+        #chart-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 </head>
 <body>
     <div id="chart-container"></div>
+
+    <script>
+        let chart = null;
+        let priceLines = {};
+
+        // Chart configuration
+        const chartConfig = {
+            grid: {
+                show: true,
+                horizontal: {
+                    show: true,
+                    size: 1,
+                    color: '#2A2A2A',
+                    style: 'dashed',
+                    dashValue: [2, 2]
+                },
+                vertical: {
+                    show: false
+                }
+            },
+            candle: {
+                type: 'candle_solid',
+                bar: {
+                    upColor: '#26A69A',
+                    downColor: '#EF5350',
+                    noChangeColor: '#888888'
+                },
+                tooltip: {
+                    showRule: 'always',
+                    showType: 'standard',
+                    labels: ['T: ', 'O: ', 'H: ', 'L: ', 'C: ', 'V: '],
+                    text: {
+                        size: 12,
+                        color: '#FFFFFF'
+                    }
+                },
+                priceMark: {
+                    show: true,
+                    high: {
+                        show: true,
+                        color: '#26A69A',
+                        textSize: 10
+                    },
+                    low: {
+                        show: true,
+                        color: '#EF5350',
+                        textSize: 10
+                    },
+                    last: {
+                        show: true,
+                        upColor: '#26A69A',
+                        downColor: '#EF5350',
+                        noChangeColor: '#888888',
+                        line: {
+                            show: true,
+                            style: 'dashed',
+                            dashValue: [4, 4],
+                            size: 1
+                        },
+                        text: {
+                            show: true,
+                            size: 12,
+                            paddingLeft: 4,
+                            paddingTop: 4,
+                            paddingRight: 4,
+                            paddingBottom: 4,
+                            color: '#FFFFFF',
+                            backgroundColor: '#26A69A',
+                            borderRadius: 2
+                        }
+                    }
+                }
+            },
+            technicalIndicator: {
+                margin: {
+                    top: 0.2,
+                    bottom: 0.1
+                },
+                bar: {
+                    upColor: '#26A69A',
+                    downColor: '#EF5350'
+                },
+                line: {
+                    size: 1,
+                    colors: ['#FF9600', '#9D65C9', '#2196F3']
+                },
+                circle: {
+                    upColor: '#26A69A',
+                    downColor: '#EF5350'
+                }
+            },
+            xAxis: {
+                show: true,
+                height: 40,
+                axisLine: {
+                    show: true,
+                    color: '#424242',
+                    size: 1
+                },
+                tickText: {
+                    show: true,
+                    color: '#9E9E9E',
+                    size: 12
+                },
+                tickLine: {
+                    show: true,
+                    size: 1,
+                    length: 3,
+                    color: '#424242'
+                }
+            },
+            yAxis: {
+                show: true,
+                width: 80,
+                position: 'right',
+                type: 'normal',
+                inside: false,
+                reverse: false,
+                axisLine: {
+                    show: true,
+                    color: '#424242',
+                    size: 1
+                },
+                tickText: {
+                    show: true,
+                    color: '#9E9E9E',
+                    size: 12
+                },
+                tickLine: {
+                    show: true,
+                    size: 1,
+                    length: 3,
+                    color: '#424242'
+                }
+            },
+            crosshair: {
+                show: true,
+                horizontal: {
+                    show: true,
+                    line: {
+                        show: true,
+                        style: 'dashed',
+                        dashValue: [4, 2],
+                        size: 1,
+                        color: '#888888'
+                    },
+                    text: {
+                        show: true,
+                        color: '#FFFFFF',
+                        size: 12,
+                        backgroundColor: '#424242',
+                        borderRadius: 2,
+                        paddingLeft: 4,
+                        paddingRight: 4,
+                        paddingTop: 4,
+                        paddingBottom: 4
+                    }
+                },
+                vertical: {
+                    show: true,
+                    line: {
+                        show: true,
+                        style: 'dashed',
+                        dashValue: [4, 2],
+                        size: 1,
+                        color: '#888888'
+                    },
+                    text: {
+                        show: true,
+                        color: '#FFFFFF',
+                        size: 12,
+                        backgroundColor: '#424242',
+                        borderRadius: 2,
+                        paddingLeft: 4,
+                        paddingRight: 4,
+                        paddingTop: 4,
+                        paddingBottom: 4
+                    }
+                }
+            }
+        };
+
+        // Initialize chart
+        function initChart() {
+            try {
+                chart = klinecharts.init('chart-container');
+                chart.setStyles(chartConfig);
+
+                // Set custom Y-axis click handler
+                chart.subscribeAction('onCrosshairChange', (data) => {
+                    if (data && data.y !== undefined && data.paneId === 'candle_pane') {
+                        const price = data.dataValue;
+                        if (price && typeof AndroidBridge !== 'undefined') {
+                            AndroidBridge.log('Price selected: ' + price);
+                        }
+                    }
+                });
+
+                // Notify Android that chart is ready
+                if (typeof AndroidBridge !== 'undefined') {
+                    AndroidBridge.onChartReady();
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Error initializing chart:', error);
+                if (typeof AndroidBridge !== 'undefined') {
+                    AndroidBridge.log('Chart init error: ' + error.message);
+                }
+                return false;
+            }
+        }
+
+        // Chart Manager
+        window.chartManager = {
+            updateData: function(candles) {
+                if (!chart) return;
+
+                try {
+                    // Convert candles to KlineCharts format
+                    const formattedData = candles.map(candle => ({
+                        timestamp: candle.time * 1000,
+                        open: candle.open,
+                        high: candle.high,
+                        low: candle.low,
+                        close: candle.close,
+                        volume: candle.volume
+                    }));
+
+                    chart.applyNewData(formattedData);
+
+                    if (typeof AndroidBridge !== 'undefined') {
+                        AndroidBridge.log('Updated ' + formattedData.length + ' candles');
+                    }
+                } catch (error) {
+                    console.error('Error updating data:', error);
+                    if (typeof AndroidBridge !== 'undefined') {
+                        AndroidBridge.log('Update data error: ' + error.message);
+                    }
+                }
+            },
+
+            addPriceLine: function(price, color, label, id) {
+                if (!chart) return;
+
+                try {
+                    // Remove existing line with same ID
+                    if (priceLines[id]) {
+                        chart.removeOverlay(priceLines[id]);
+                    }
+
+                    // Create horizontal line overlay
+                    const overlay = {
+                        name: 'horizontalRayLine',
+                        id: id,
+                        points: [{ value: price }],
+                        styles: {
+                            line: {
+                                style: 'dashed',
+                                color: color,
+                                size: 2,
+                                dashValue: [6, 3]
+                            }
+                        },
+                        extendLeft: true,
+                        extendRight: true
+                    };
+
+                    chart.createOverlay(overlay);
+                    priceLines[id] = id;
+
+                    if (typeof AndroidBridge !== 'undefined') {
+                        AndroidBridge.log('Added price line: ' + label + ' at ' + price);
+                    }
+                } catch (error) {
+                    console.error('Error adding price line:', error);
+                    if (typeof AndroidBridge !== 'undefined') {
+                        AndroidBridge.log('Add price line error: ' + error.message);
+                    }
+                }
+            },
+
+            updatePriceLine: function(id, newPrice) {
+                if (!chart || !priceLines[id]) return;
+
+                try {
+                    chart.removeOverlay(id);
+                    delete priceLines[id];
+
+                    // Re-add with new price (color and label would need to be stored)
+                    // For now, we'll just log
+                    if (typeof AndroidBridge !== 'undefined') {
+                        AndroidBridge.log('Updated price line: ' + id + ' to ' + newPrice);
+                    }
+                } catch (error) {
+                    console.error('Error updating price line:', error);
+                }
+            },
+
+            removePriceLine: function(id) {
+                if (!chart || !priceLines[id]) return;
+
+                try {
+                    chart.removeOverlay(id);
+                    delete priceLines[id];
+
+                    if (typeof AndroidBridge !== 'undefined') {
+                        AndroidBridge.log('Removed price line: ' + id);
+                    }
+                } catch (error) {
+                    console.error('Error removing price line:', error);
+                }
+            },
+
+            addIndicator: function(name) {
+                if (!chart) return;
+
+                try {
+                    chart.createIndicator(name, false, { id: 'candle_pane' });
+
+                    if (typeof AndroidBridge !== 'undefined') {
+                        AndroidBridge.onIndicatorAdded(name);
+                    }
+                } catch (error) {
+                    console.error('Error adding indicator:', error);
+                }
+            },
+
+            removeIndicator: function(name) {
+                if (!chart) return;
+
+                try {
+                    chart.removeIndicator('candle_pane', name);
+                } catch (error) {
+                    console.error('Error removing indicator:', error);
+                }
+            },
+
+            setTheme: function(theme) {
+                if (!chart) return;
+
+                try {
+                    if (theme === 'dark') {
+                        chart.setStyles(chartConfig);
+                    }
+                } catch (error) {
+                    console.error('Error setting theme:', error);
+                }
+            },
+
+            getPriceFromY: function(y) {
+                if (!chart) return 0;
+
+                try {
+                    const price = chart.convertFromPixel({ y: y }, { paneId: 'candle_pane' });
+                    if (price && price.value && typeof AndroidBridge !== 'undefined') {
+                        AndroidBridge.onPriceSelected(price.value);
+                    }
+                    return price ? price.value : 0;
+                } catch (error) {
+                    console.error('Error getting price from Y:', error);
+                    return 0;
+                }
+            }
+        };
+
+        // Initialize chart when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initChart);
+        } else {
+            initChart();
+        }
+    </script>
 </body>
 </html>
