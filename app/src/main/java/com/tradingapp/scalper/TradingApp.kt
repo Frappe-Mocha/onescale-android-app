@@ -1,4 +1,12 @@
 package com.tradingapp.scalper
 
-// TradingApp.kt - Application class
-// Code will be added here
+import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
+
+@HiltAndroidApp
+class TradingApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // Initialize app-level components here
+    }
+}
