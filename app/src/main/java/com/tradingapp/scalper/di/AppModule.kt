@@ -14,8 +14,13 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -31,6 +36,14 @@ object AppModule {
             .create()
     }
 
+    private fun getUnsafeTrustManager(): X509TrustManager {
+        return object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+        }
+    }
+
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
@@ -38,20 +51,26 @@ object AppModule {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
-        return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Accept", "application/json")
-                    .addHeader("Content-Type", "application/json")
-                    .build()
-                chain.proceed(request)
-            }
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .pingInterval(30, TimeUnit.SECONDS)
-            .build()
+        return try {
+            val trustManager = getUnsafeTrustManager()
+            val sslContext = SSLContext.getInstance("TLS")
+            sslContext.init(null, arrayOf<TrustManager>(trustManager), SecureRandom())
+
+            OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.socketFactory, trustManager)
+                .hostnameVerifier { _, _ -> true }
+                .addInterceptor(loggingInterceptor)
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback to default client
+            OkHttpClient.Builder()
+                .addInterceptor(loggingInterceptor)
+                .build()
+        }
     }
 
     @Provides

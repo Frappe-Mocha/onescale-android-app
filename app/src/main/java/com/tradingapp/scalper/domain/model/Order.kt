@@ -8,14 +8,16 @@ data class Order(
     val quantity: Double,
     val price: Double? = null,
     val status: OrderStatus = OrderStatus.PENDING,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val filledQuantity: Double
 )
 
 enum class OrderType {
     MARKET,
     LIMIT,
     STOP_MARKET,
-    STOP_LIMIT
+    STOP_LIMIT,
+    STOP_LOSS
 }
 
 enum class OrderSide {

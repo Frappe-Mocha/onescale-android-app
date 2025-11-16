@@ -31,14 +31,14 @@ class TradingRepository @Inject constructor(
                 val startTime = endTime - (24 * 60 * 60) // Last 24 hours
 
                 val resolution = when (timeframe) {
-                    "1m" -> "1"
-                    "5m" -> "5"
-                    "15m" -> "15"
-                    "30m" -> "30"
-                    "1h" -> "60"
-                    "4h" -> "240"
-                    "1d" -> "D"
-                    else -> "1"
+                    "1m" -> "1m"
+                    "5m" -> "5m"
+                    "15m" -> "15m"
+                    "30m" -> "30m"
+                    "1h" -> "60m"
+                    "4h" -> "240m"
+                    "1d" -> "Dm"
+                    else -> "1m"
                 }
 
                 val response = apiService.getCandles(symbol, resolution, startTime, endTime)
@@ -180,6 +180,7 @@ class TradingRepository @Inject constructor(
                     OrderType.LIMIT -> "limit_order"
                     OrderType.STOP_LOSS -> "stop_market_order"
                     OrderType.STOP_LIMIT -> "stop_limit_order"
+                    OrderType.STOP_MARKET -> TODO()
                 }
             )
 

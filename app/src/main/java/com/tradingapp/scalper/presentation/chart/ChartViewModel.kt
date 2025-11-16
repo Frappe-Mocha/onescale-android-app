@@ -50,10 +50,6 @@ data class ChartUiState(
     val marginRequired: Double = 0.0
 )
 
-enum class ConnectionStatus {
-    CONNECTED, CONNECTING, DISCONNECTED, ERROR
-}
-
 @HiltViewModel
 class ChartViewModel @Inject constructor(
     private val getMarketDataUseCase: GetMarketDataUseCase,
@@ -134,9 +130,9 @@ class ChartViewModel @Inject constructor(
         // Subscribe to ticker updates
         viewModelScope.launch {
             try {
-                getMarketDataUseCase.getTicker(_uiState.value.currentSymbol)
+                getMarketDataUseCase.getCandles(_uiState.value.currentSymbol, "5m")
                     .collect { ticker ->
-                        _uiState.update { it.copy(tickerData = ticker) }
+                        _uiState.update { it.copy(candles = ticker) }
                     }
             } catch (e: Exception) {
                 Timber.e(e, "Error subscribing to ticker")
@@ -147,7 +143,7 @@ class ChartViewModel @Inject constructor(
     private fun observePositions() {
         viewModelScope.launch {
             try {
-                getPositionsUseCase.getAll().collect { positions ->
+                getPositionsUseCase.getPositions().collect { positions ->
                     val totalPnL = positions.sumOf { it.unrealizedPnL }
                     _uiState.update { it.copy(
                         positions = positions,
@@ -163,7 +159,7 @@ class ChartViewModel @Inject constructor(
     private fun observeAccountInfo() {
         viewModelScope.launch {
             try {
-                val accountResult = getAccountInfoUseCase.execute()
+                val accountResult = getAccountInfoUseCase.invoke()
                 accountResult.onSuccess { account ->
                     _uiState.update { it.copy(
                         availableFunds = account.availableMargin
@@ -265,7 +261,7 @@ class ChartViewModel @Inject constructor(
                     timestamp = System.currentTimeMillis()
                 )
 
-                val result = placeOrderUseCase.execute(order)
+                val result = placeOrderUseCase.invoke(order)
                 result.onSuccess {
                     Timber.d("Order placed successfully: $it")
                     // Show success message
@@ -298,7 +294,7 @@ class ChartViewModel @Inject constructor(
                     timestamp = System.currentTimeMillis()
                 )
 
-                val result = placeOrderUseCase.execute(order)
+                val result = placeOrderUseCase.invoke(order)
                 result.onSuccess {
                     Timber.d("Order placed successfully: $it")
                     // Show success message

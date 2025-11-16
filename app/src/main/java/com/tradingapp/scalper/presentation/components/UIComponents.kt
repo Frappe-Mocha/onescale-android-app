@@ -1,7 +1,8 @@
-package com.tradingapp.scalper.presentation.chart.components
+package com.tradingapp.scalper.presentation.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -136,7 +137,7 @@ fun ConnectionStatusIndicator(
             ConnectionStatus.DISCONNECTED -> Color.Gray
             ConnectionStatus.ERROR -> TradingColors.SellRed
         },
-        animationSpec = androidx.compose.animation.core.tween(500)
+        animationSpec = tween(500)
     )
 
     val text = when (status) {

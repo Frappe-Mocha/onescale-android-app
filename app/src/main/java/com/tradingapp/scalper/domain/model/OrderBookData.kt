@@ -8,5 +8,6 @@ data class OrderBookData(
 
 data class OrderBookLevel(
     val price: Double,
-    val quantity: Double
+    val quantity: Double,
+    val total: Double
 )
